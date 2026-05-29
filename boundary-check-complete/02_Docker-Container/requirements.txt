@@ -1,0 +1,13 @@
+# ── Docker-Script (Parzellen-Download) ───────────────────────────────────────
+geopandas
+requests
+shapely
+pyogrio
+rasterio
+ezdxf
+
+# ── Blender Add-On (werden via "Bibliotheken installieren" in Blenders Python
+#    installiert; hier zur Vollständigkeit auch im Container verfügbar) ────────
+pyproj
+reportlab
+numpy

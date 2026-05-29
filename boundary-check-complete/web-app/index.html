@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Grenzcheck – Baurecht Schweiz</title>
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="app.css">
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.9.0/proj4.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Turf.js/6.5.0/turf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.158.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+<div id="app">
+
+  <!-- ── Sidebar ── -->
+  <aside id="sidebar">
+    <div id="logo">
+      <div id="logo-mark">⬡</div>
+      <div>
+        <div id="logo-title">Grenzcheck</div>
+        <div id="logo-sub">Baurecht Schweiz</div>
+      </div>
+    </div>
+
+    <!-- 1 Parzelle -->
+    <div class="section">
+      <div class="sec-head">
+        <span class="step-badge">1</span>
+        <span class="sec-title">Parzelle</span>
+        <span class="step-dot" id="dot-parcel">○</span>
+      </div>
+      <div class="sec-body">
+        <div class="row-input">
+          <input id="egrid-input" class="inp" type="text" placeholder="EGRID (CH835378937802)">
+          <button id="btn-egrid" class="btn btn-p" title="Laden">→</button>
+        </div>
+        <div class="or-sep"><span>oder</span></div>
+        <div class="row-input">
+          <input id="addr-input" class="inp" type="text" placeholder="Adresse suchen …">
+          <button id="btn-addr" class="btn btn-s">🔍</button>
+        </div>
+        <div id="addr-drop" class="autocomplete hidden"></div>
+        <div class="hint">oder Karte anklicken</div>
+        <div id="parcel-card" class="info-card hidden">
+          <div class="cr"><span>EGRID</span><b id="pc-egrid">—</b></div>
+          <div class="cr"><span>Kanton</span><b id="pc-canton">—</b></div>
+          <div class="cr"><span>Nr.</span><b id="pc-nr">—</b></div>
+          <div class="cr"><span>Fläche</span><b id="pc-area">—</b></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2 IFC -->
+    <div class="section">
+      <div class="sec-head">
+        <span class="step-badge">2</span>
+        <span class="sec-title">IFC-Modell</span>
+        <span class="step-dot" id="dot-ifc">○</span>
+      </div>
+      <div class="sec-body">
+        <div class="drop-zone" id="drop-zone">
+          <input type="file" id="ifc-input" accept=".ifc" hidden>
+          <div class="drop-inner" onclick="document.getElementById('ifc-input').click()">
+            <div class="drop-icon">📐</div>
+            <div class="drop-label">IFC-Datei laden</div>
+            <div class="drop-sub">oder hier reinziehen</div>
+          </div>
+        </div>
+        <div id="ifc-card" class="info-card hidden">
+          <div class="cr"><span>Datei</span><b id="ic-name">—</b></div>
+          <div class="cr"><span>Elemente</span><b id="ic-count">—</b></div>
+          <div class="cr"><span>Georef.</span><b id="ic-georef">—</b></div>
+          <div id="ifc-prog-wrap" hidden>
+            <div class="prog"><div class="prog-bar" id="ifc-prog"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3 Grenzabstand -->
+    <div class="section">
+      <div class="sec-head">
+        <span class="step-badge">3</span>
+        <span class="sec-title">Grenzabstand</span>
+        <span class="step-dot" id="dot-check">○</span>
+      </div>
+      <div class="sec-body">
+        <div class="param-row">
+          <label>Grosser GA</label>
+          <div class="num-wrap">
+            <input id="p-gross" class="num-inp" type="number" value="6" min="0" max="99" step="0.5">
+            <span>m</span>
+          </div>
+        </div>
+        <div class="param-row">
+          <label>Kleiner GA</label>
+          <div class="num-wrap">
+            <input id="p-klein" class="num-inp" type="number" value="3" min="0" max="99" step="0.5">
+            <span>m</span>
+          </div>
+        </div>
+        <button id="btn-check" class="btn btn-p btn-full">Grenzcheck ausführen</button>
+        <div id="check-result" class="result-panel hidden"></div>
+      </div>
+    </div>
+
+    <!-- 4 OEREB -->
+    <div class="section">
+      <div class="sec-head">
+        <span class="step-badge">4</span>
+        <span class="sec-title">OEREB-Zonen</span>
+        <span class="step-dot" id="dot-oereb">○</span>
+      </div>
+      <div class="sec-body">
+        <!-- proxy-url: auto-set by JS; hidden on Vercel, shown on localhost -->
+        <div id="oereb-proxy-note" class="proxy-note hidden">
+          <strong>CORS-Proxy URL</strong>
+          <input id="proxy-url" class="inp" type="text" placeholder="/api/proxy" style="margin-top:4px">
+          <div class="hint">Nur lokal nötig – auf der gehosteten Website automatisch.</div>
+        </div>
+        <button id="btn-oereb" class="btn btn-s btn-full" style="margin-top:8px">OEREB laden</button>
+        <div id="oereb-list" class="zone-list hidden"></div>
+      </div>
+    </div>
+
+    <!-- 5 Export -->
+    <div class="section">
+      <div class="sec-head">
+        <span class="step-badge">5</span>
+        <span class="sec-title">Export</span>
+        <span class="step-dot" id="dot-export">○</span>
+      </div>
+      <div class="sec-body">
+        <button id="btn-pdf" class="btn btn-s btn-full">📄 PDF-Bericht exportieren</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ── Main ── -->
+  <main id="main">
+    <div id="topbar">
+      <div class="view-sw">
+        <button class="vbtn active" id="vbtn-2d" onclick="window.app&&app.setView('2d')">🗺 Karte</button>
+        <button class="vbtn" id="vbtn-3d" onclick="window.app&&app.setView('3d')">🏗 3D</button>
+      </div>
+      <div id="coord-bar"></div>
+    </div>
+
+    <!-- 2D map -->
+    <div id="map-wrap">
+      <div id="map"></div>
+    </div>
+
+    <!-- 3D scene -->
+    <div id="scene-wrap" class="hidden">
+      <canvas id="three-canvas"></canvas>
+      <div id="scene-hint">🖱 Drehen · Scrollen: Zoom · Shift: Pan</div>
+      <div id="legend">
+        <div class="leg"><div class="leg-sw" style="background:#22c55e"></div>Zielparzelle</div>
+        <div class="leg"><div class="leg-sw" style="background:#3b82f6"></div>Nachbarn</div>
+        <div class="leg"><div class="leg-sw" style="background:rgba(245,158,11,.5)"></div>Grenzabstandszone</div>
+        <div class="leg"><div class="leg-sw" style="background:#ef4444"></div>Verletzung</div>
+        <div class="leg"><div class="leg-sw" style="background:#e2e8f0"></div>Gebäude (IFC)</div>
+      </div>
+      <div id="scene-ctrl">
+        <button class="sc-btn" id="sc-reset" title="Kamera zurücksetzen">⌂</button>
+        <button class="sc-btn" id="sc-top" title="Draufsicht">⊤</button>
+        <button class="sc-btn" id="sc-wire" title="Drahtgitter">⬡</button>
+      </div>
+    </div>
+
+    <div id="statusbar">
+      <span id="status-text">Bereit – Parzelle eingeben oder Karte anklicken</span>
+      <span id="spinner" class="hidden"><span class="spin">⏳</span> <span id="spin-text"></span></span>
+    </div>
+  </main>
+
+</div>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

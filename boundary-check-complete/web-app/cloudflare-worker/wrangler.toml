@@ -1,0 +1,10 @@
+name = "oereb-cors-proxy"
+main = "worker.js"
+compatibility_date = "2024-09-23"
+
+# Routen – nach dem Deploy zeigt Cloudflare die Worker-URL an.
+# Alternativ kann eine eigene Domain verknüpft werden.
+# routes = [{ pattern = "proxy.example.com/*", zone_name = "example.com" }]
+
+[observability]
+enabled = true
