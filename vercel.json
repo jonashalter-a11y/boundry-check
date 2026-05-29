@@ -1,7 +1,7 @@
 {
   "outputDirectory": "boundary-check-complete/web-app",
   "functions": {
-    "boundary-check-complete/api/proxy.js": {
+    "api/proxy.js": {
       "memory": 128,
       "maxDuration": 10
     }
