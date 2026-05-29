@@ -47,14 +47,11 @@ export async function loadIfc(buffer, onProgress) {
 
   const meshes = [];
   let processed = 0;
-  let total = 0;
 
-  // Count total meshes first for progress
-  api.StreamAllMeshes(modelId, () => { total++; });
-
+  // Single pass – progress based on byte offset approximation
   api.StreamAllMeshes(modelId, (flatMesh) => {
     processed++;
-    if (onProgress && total > 0) onProgress(processed / total);
+    if (onProgress) onProgress(Math.min(processed / 200, 0.99));
 
     for (let i = 0; i < flatMesh.geometries.size(); i++) {
       const placedGeom = flatMesh.geometries.get(i);
