@@ -1,0 +1,18 @@
+{
+  "outputDirectory": "boundary-check-complete/web-app",
+  "functions": {
+    "boundary-check-complete/api/proxy.js": {
+      "memory": 128,
+      "maxDuration": 10
+    }
+  },
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "Cross-Origin-Embedder-Policy", "value": "require-corp" },
+        { "key": "Cross-Origin-Opener-Policy", "value": "same-origin" }
+      ]
+    }
+  ]
+}
