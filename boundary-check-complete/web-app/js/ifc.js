@@ -1,18 +1,23 @@
 import * as THREE from 'three';
 import { lv95ToWgs84, convexHullLv95ToWgs84 } from './geo.js';
 
-const WASM_PATH = 'https://cdn.jsdelivr.net/npm/web-ifc@0.0.51/';
+const WASM_VERSION = '0.0.57';
+const WASM_PATH = `https://cdn.jsdelivr.net/npm/web-ifc@${WASM_VERSION}/`;
 
 let _ifcApi = null;
 
 async function getApi() {
   if (_ifcApi) return _ifcApi;
-  const { IfcAPI } = await import('https://esm.sh/web-ifc@0.0.51');
-  const api = new IfcAPI();
-  api.SetWasmPath(WASM_PATH);
-  await api.Init();
-  _ifcApi = api;
-  return api;
+  try {
+    const { IfcAPI } = await import(`https://esm.sh/web-ifc@${WASM_VERSION}`);
+    const api = new IfcAPI();
+    api.SetWasmPath(WASM_PATH);
+    await api.Init();
+    _ifcApi = api;
+    return api;
+  } catch (e) {
+    throw new Error(`web-ifc WASM konnte nicht geladen werden: ${e.message}`);
+  }
 }
 
 // Parse IFCMAPCONVERSION to get LV95 georeferencing offset
